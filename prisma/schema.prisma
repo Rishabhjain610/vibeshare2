@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Comment {
+  id            String          @id
+  content       String
+  authorId      String
+  postId        String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  User          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  Post          Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  Like          Like[]
+  Notifications Notifications[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([postId])
+}
+
+model Followers {
+  id                               String @id
+  followerId                       String
+  followingId                      String
+  User_Followers_followerIdToUser  User   @relation("Followers_followerIdToUser", fields: [followerId], references: [id], onDelete: Cascade)
+  User_Followers_followingIdToUser User   @relation("Followers_followingIdToUser", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Like {
+  id        String  @id
+  userId    String
+  postId    String
+  commentId String
+  Comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  Post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([commentId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Notifications {
+  id                                 String   @id
+  creatorId                          String
+  userId                             String
+  postId                             String?
+  commentId                          String?
+  Comment                            Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  User_Notifications_creatorIdToUser User     @relation("Notifications_creatorIdToUser", fields: [creatorId], references: [id], onDelete: Cascade)
+  Post                               Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User_Notifications_userIdToUser    User     @relation("Notifications_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+  @@index([creatorId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Post {
+  id            String          @id
+  caption       String?
+  mediaUrl      String?
+  authorId      String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  location      String?
+  isPinned      Boolean         @default(false)
+  likesCount    Int             @default(0)
+  commentsCount Int             @default(0)
+  isReported    Boolean         @default(false)
+  isDeleted     Boolean         @default(false)
+  deletedAt     DateTime?
+  reportsInt    Int             @default(0)
+  Comment       Comment[]
+  Like          Like[]
+  Notifications Notifications[]
+  User          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  Tag           Tag[]
+
+  @@index([authorId])
+  @@index([commentsCount])
+  @@index([createdAt])
+  @@index([isPinned])
+  @@index([likesCount])
+}
+
+model Tag {
+  id        String   @id
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Post      Post[]
+
+  @@index([createdAt])
+  @@index([name])
+}
+
+model User {
+  id                                          String          @id
+  email                                       String          @unique
+  username                                    String          @unique
+  clerkId                                     String          @unique
+  name                                        String?
+  bio                                         String?
+  imageUrl                                    String?
+  location                                    String?
+  website                                     String?
+  lastLoginAt                                 DateTime?
+  lastActiveAt                                DateTime?
+  createdAt                                   DateTime        @default(now())
+  updatedAt                                   DateTime
+  followersCount                              Int             @default(0)
+  followingCount                              Int             @default(0)
+  postsCount                                  Int             @default(0)
+  likesReceived                               Int             @default(0)
+  role                                        Role            @default(USER)
+  Comment                                     Comment[]
+  Followers_Followers_followerIdToUser        Followers[]     @relation("Followers_followerIdToUser")
+  Followers_Followers_followingIdToUser       Followers[]     @relation("Followers_followingIdToUser")
+  Like                                        Like[]
+  Notifications_Notifications_creatorIdToUser Notifications[] @relation("Notifications_creatorIdToUser")
+  Notifications_Notifications_userIdToUser    Notifications[] @relation("Notifications_userIdToUser")
+  Post                                        Post[]
+
+  @@index([createdAt])
+  @@index([lastActiveAt])
+  @@index([username])
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+}
+
+enum Role {
+  USER
+  ADMIN
+  ANALYST
+}
