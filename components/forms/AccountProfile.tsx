@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,11 +29,24 @@ const profileSchema = z.object({
     .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores allowed"),
   bio: z.string().max(160, "Bio cannot exceed 160 characters"),
   profilePhoto: z.string(),
+  location: z.string().max(100, "Location cannot exceed 100 characters").optional(),
+  website: z.string().max(100, "Website URL cannot exceed 100 characters").optional(),
 });
 
 type ProfileValues = z.infer<typeof profileSchema>;
 
-const AccountProfile = () => {
+interface AccountProfileProps {
+  initialData?: {
+    name: string;
+    username: string;
+    bio: string;
+    profilePhoto: string;
+    location: string;
+    website: string;
+  };
+}
+
+const AccountProfile = ({ initialData }: AccountProfileProps) => {
   const { user } = useUser();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,32 +57,65 @@ const AccountProfile = () => {
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: "",
-      username: "",
-      bio: "",
-      profilePhoto: "",
+      name: initialData?.name || "",
+      username: initialData?.username || "",
+      bio: initialData?.bio || "",
+      profilePhoto: initialData?.profilePhoto || "",
+      location: initialData?.location || "",
+      website: initialData?.website || "",
     },
   });
 
   // Prepopulate form when user mounts
   useEffect(() => {
-    if (user) {
+    if (initialData) {
+      form.reset(initialData);
+      setPreviewUrl(initialData.profilePhoto || "");
+    } else if (user) {
       form.reset({
         name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
         username: user.username || "",
         bio: "",
         profilePhoto: user.imageUrl || "",
+        location: "",
+        website: "",
       });
       setPreviewUrl(user.imageUrl || "");
     }
-  }, [user, form]);
+  }, [user, initialData, form]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      form.setValue("profilePhoto", url);
+      // 1. Show local preview immediately
+      const localUrl = URL.createObjectURL(file);
+      setPreviewUrl(localUrl);
+      setIsLoading(true);
+
+      // 2. Upload to S3 API
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await axios.post("/api/upload?type=profile", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        const data = response.data;
+
+        // 3. Update preview and form value with S3 URL
+        setPreviewUrl(data.url);
+        form.setValue("profilePhoto", data.url);
+      } catch (error: any) {
+        console.error("[AccountProfile] Upload error:", error);
+        alert(error.message || "Failed to upload profile photo. Please try again.");
+        // Revert to original
+        setPreviewUrl(form.getValues("profilePhoto") || "");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -79,11 +126,13 @@ const AccountProfile = () => {
   const onSubmit = async (values: ProfileValues) => {
     setIsLoading(true);
     try {
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      router.push("/");
-    } catch (error) {
-      console.error(error);
+      const response = await axios.post("/api/profile", values);
+      const data = response.data;
+
+      router.push(`/profile/${data.user.username}`);
+    } catch (error: any) {
+      console.error("[AccountProfile] Submit error:", error);
+      alert(error.message || "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
@@ -182,6 +231,40 @@ const AccountProfile = () => {
                   rows={3}
                   {...field}
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Location */}
+        <FormField
+          control={form.control}
+          name="location"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+                Location
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., New York, USA" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Website */}
+        <FormField
+          control={form.control}
+          name="website"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+                Website URL
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., https://yourwebsite.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

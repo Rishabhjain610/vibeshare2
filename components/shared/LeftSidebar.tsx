@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Rss, Search, Bell, Sparkles, User, ChevronLeft, ChevronRight, Clapperboard, PlusSquare, Sun, Moon, LogIn } from "lucide-react";
+import { Rss, Search, Bell, User, ChevronLeft, ChevronRight, Clapperboard, PlusSquare, Sun, Moon, LogIn, Film, MessageSquare } from "lucide-react";
 import { UserButton, SignInButton, Show } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,9 +12,10 @@ const sidebarLinks = [
   { label: "Feed", href: "/", icon: Rss },
   { label: "Reels", href: "/reels", icon: Clapperboard },
   { label: "Explore", href: "/explore", icon: Search },
+  { label: "Messages", href: "/chat", icon: MessageSquare },
   { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Create Post", href: "/create-post", icon: PlusSquare },
-  { label: "Onboarding", href: "/onboarding", icon: Sparkles },
+  { label: "Create Reel", href: "/create-reel", icon: Film },
   { label: "Profile", href: "/profile", icon: User },
 ];
 

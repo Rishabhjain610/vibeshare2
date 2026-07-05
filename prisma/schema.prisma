@@ -10,17 +10,19 @@ model Comment {
   id            String          @id
   content       String
   authorId      String
-  postId        String
+  postId        String?
+  reelId        String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime
   User          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  Post          Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  Post          Post?           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  Reel          Reel?           @relation(fields: [reelId], references: [id], onDelete: Cascade)
   Like          Like[]
   Notifications Notifications[]
 
   @@index([authorId])
-  @@index([createdAt])
-  @@index([postId])
+  @@index([postId, createdAt])
+  @@index([reelId, createdAt])
 }
 
 model Followers {
@@ -30,6 +32,7 @@ model Followers {
   User_Followers_followerIdToUser  User   @relation("Followers_followerIdToUser", fields: [followerId], references: [id], onDelete: Cascade)
   User_Followers_followingIdToUser User   @relation("Followers_followingIdToUser", fields: [followingId], references: [id], onDelete: Cascade)
 
+  @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
 }
@@ -37,16 +40,20 @@ model Followers {
 model Like {
   id        String  @id
   userId    String
-  postId    String
-  commentId String
-  Comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  Post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  User      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String?
+  reelId    String?
+  commentId String?
+  Comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  Post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  Reel      Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@unique([userId, reelId])
   @@index([commentId])
   @@index([postId])
-  @@index([userId])
+  @@index([reelId])
 }
 
 model Notifications {
@@ -55,15 +62,19 @@ model Notifications {
   userId                             String
   postId                             String?
   commentId                          String?
+  reelId                             String?
+  createdAt                          DateTime @default(now())
   Comment                            Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
   User_Notifications_creatorIdToUser User     @relation("Notifications_creatorIdToUser", fields: [creatorId], references: [id], onDelete: Cascade)
   Post                               Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  Reel                               Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
   User_Notifications_userIdToUser    User     @relation("Notifications_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([commentId])
   @@index([creatorId])
   @@index([postId])
-  @@index([userId])
+  @@index([reelId])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model Post {
@@ -85,13 +96,12 @@ model Post {
   Like          Like[]
   Notifications Notifications[]
   User          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  Tag           Tag[]
+  Tag           Tag[]           @relation("PostToTag")
 
-  @@index([authorId])
   @@index([commentsCount])
-  @@index([createdAt])
   @@index([isPinned])
   @@index([likesCount])
+  @@index([authorId, createdAt(sort: Desc)])
 }
 
 model Tag {
@@ -99,10 +109,9 @@ model Tag {
   name      String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime
-  Post      Post[]
+  Post      Post[]   @relation("PostToTag")
 
   @@index([createdAt])
-  @@index([name])
 }
 
 model User {
@@ -131,10 +140,33 @@ model User {
   Notifications_Notifications_creatorIdToUser Notifications[] @relation("Notifications_creatorIdToUser")
   Notifications_Notifications_userIdToUser    Notifications[] @relation("Notifications_userIdToUser")
   Post                                        Post[]
+  Reel                                        Reel[]
+  SentMessages                                Message[]       @relation("SentMessages")
+  ReceivedMessages                            Message[]       @relation("ReceivedMessages")
 
   @@index([createdAt])
   @@index([lastActiveAt])
-  @@index([username])
+}
+
+model Reel {
+  id            String          @id
+  caption       String?
+  videoUrl      String
+  authorId      String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  likesCount    Int             @default(0)
+  commentsCount Int             @default(0)
+  isReported    Boolean         @default(false)
+  isDeleted     Boolean         @default(false)
+  deletedAt     DateTime?
+  reportsInt    Int             @default(0)
+  Comment       Comment[]
+  Like          Like[]
+  Notifications Notifications[]
+  User          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId, createdAt(sort: Desc)])
 }
 
 enum NotificationType {
@@ -147,4 +179,20 @@ enum Role {
   USER
   ADMIN
   ANALYST
+}
+
+model Message {
+  id         String   @id
+  senderId   String
+  receiverId String
+  content    String
+  createdAt  DateTime @default(now())
+  isRead     Boolean  @default(false)
+  
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
 }

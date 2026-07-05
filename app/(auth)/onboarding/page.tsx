@@ -1,9 +1,43 @@
 import React from 'react';
 import AccountProfile from '@/components/forms/AccountProfile';
+import { currentUser } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import prisma from '@/lib/prisma';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
-const page = () => {
+const page = async () => {
+  // 1. Authenticate user
+  const clerkUser = await currentUser();
+  if (!clerkUser) {
+    redirect('/sign-in');
+  }
+
+  // 2. Fetch existing user details from database
+  const dbUser = await prisma.user.findUnique({
+    where: { id: clerkUser.id },
+  });
+
+  // 3. Format initialData if user exists in database
+  const initialData = dbUser ? {
+    name: dbUser.name || `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim(),
+    username: dbUser.username || clerkUser.username || "",
+    bio: dbUser.bio || "",
+    profilePhoto: dbUser.imageUrl || clerkUser.imageUrl || "",
+    location: dbUser.location || "",
+    website: dbUser.website || "",
+  } : undefined;
+
   return (
-    <main className="w-full max-w-md flex flex-col justify-center py-10 px-4 select-none">
+    <main className="w-full max-w-md flex flex-col justify-center py-12 px-4 select-none relative">
+      {/* Back Button */}
+      <Link 
+        href="/" 
+        className="absolute top-2 left-2 flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 dark:focus-visible:ring-neutral-300 rounded-lg p-1.5"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Feed
+      </Link>
       <div className="flex flex-col items-center mb-6">
         {/* Custom brand geometric logo */}
         <svg
@@ -46,7 +80,7 @@ const page = () => {
           Tell us about yourself to customize your VibeShare feed
         </p>
       </div>
-      <AccountProfile />
+      <AccountProfile initialData={initialData} />
     </main>
   );
 };

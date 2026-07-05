@@ -36,8 +36,8 @@ export default function RootLayout({
           <Navbar />
           <main className="flex">
             <LeftSidebar />
-            <section className="main-container">
-              <div className="w-full max-w-4xl">{children}</div>
+            <section className="flex-1 flex justify-center min-h-[calc(100vh-4rem)] w-full py-8 px-4 md:px-8">
+              <div className="w-full max-w-3xl flex flex-col gap-6">{children}</div>
             </section>
             <RightSidebar />
           </main>
