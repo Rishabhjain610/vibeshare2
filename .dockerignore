@@ -1,0 +1,14 @@
+# =========================================================================
+# .DOCKERIGNORE: The Filter (Faltu Files Ko Bahar Rakhne Wala)
+# Analogy: Jaise naye ghar me shift hote time kachra aur purani packing boxes sath nahi le jate,
+# waise hi ye heavy aur temporary files ko docker image me copy hone se rokta hai.
+# Use: Image size ko chota aur build process ko fast rakhna.
+# =========================================================================
+
+node_modules
+.next
+.git
+.gitignore
+README.md
+Dockerfile
+docker-compose.yml

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
+import { invalidateCache } from "@/lib/redis";
 
 export async function POST(
   request: Request,
@@ -108,6 +109,9 @@ export async function POST(
       where: { id: followingId },
       select: { followersCount: true },
     });
+
+    // Invalidate follow suggestions cache for the follower in Redis
+    await invalidateCache(`users:suggestions:cache:${followerId}`);
 
     return NextResponse.json({
       success: true,

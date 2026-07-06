@@ -1,4 +1,3 @@
-import { createGroq } from "@ai-sdk/groq";
 import { tool } from "ai";
 import { z } from "zod";
 import { getProfileTool } from "../../analytics/getProfile";
@@ -7,10 +6,7 @@ import { getFollowersTool } from "../../analytics/getFollowers";
 import { getEngagementTool } from "../../analytics/getEngagement";
 import { compareMonthsTool } from "../../analytics/compareMonths";
 import { generateChartDataTool } from "../../analytics/charts";
-
-// Groq — fastest free cloud inference, excellent tool calling
-const groq = createGroq();
-const groqModel = groq("qwen/qwen3.6-27b");
+import { groqModel } from "@/lib/ai/models";
 
 export const analyticsAgentTools = {
   getProfile: getProfileTool,
@@ -26,7 +22,7 @@ function bindToolUserId(originalTool: any, fallbackUserId: string) {
   const originalShape = originalTool.inputSchema?.shape || {};
   const mergedSchema = z.object({
     ...originalShape,
-    userId: z.string().optional().describe("User ID. Optional - defaults to current logged in user.")
+    userId: z.string().nullable().optional().describe("User ID. Optional - defaults to current logged in user.")
   });
 
   return tool({

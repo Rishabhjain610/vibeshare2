@@ -2,11 +2,6 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import axios from "axios";
-import { generateText } from "ai";
-import { createGroq } from "@ai-sdk/groq";
-
-const groq = createGroq();
-const groqModel = groq("qwen/qwen3.6-27b");
 
 
 export async function POST(request: Request) {
@@ -91,69 +86,31 @@ ${transcript}
 
 Summary:`;
 
+    const ollamaUrl = "http://127.0.0.1:11434/api/generate";
     try {
-      // 1. Try Groq cloud model first for instant response
-      const groqResponse = await generateText({
-        model: groqModel,
-        system: "You are a helpful chat assistant. Below is a direct chat transcript between two users. Provide a clear, brief bulleted summary of this conversation. Highlight key topics discussed, agreements made, or action items. Keep it concise and structured using Markdown.",
-        prompt: `Transcript:\n${transcript}\n\nSummary:`,
-      });
+      console.log("[API_CHAT_SUMMARIZE] Requesting summary using local Ollama model 'minimax-m3:cloud'...");
+      const ollamaResponse = await axios.post(
+        ollamaUrl,
+        {
+          model: "minimax-m3:cloud",
+          prompt: systemPrompt,
+          stream: false,
+        },
+        {
+          timeout: 20000, // 20 second timeout for Ollama summary
+        }
+      );
 
       return NextResponse.json({
         success: true,
-        summary: groqResponse.text,
+        summary: ollamaResponse.data.response,
       });
-    } catch (groqError: any) {
-      console.warn("[API_CHAT_SUMMARIZE] Groq cloud summary failed, falling back to local Ollama:", groqError.message);
-      
-      const ollamaUrl = "http://127.0.0.1:11434/api/generate";
-      try {
-        const ollamaResponse = await axios.post(
-          ollamaUrl,
-          {
-            model: "minimax-m3:cloud",
-            prompt: systemPrompt,
-            stream: false,
-          },
-          {
-            timeout: 10000, // 10 second timeout for fallback
-          }
-        );
-
-        return NextResponse.json({
-          success: true,
-          summary: ollamaResponse.data.response,
-        });
-      } catch (ollamaError: any) {
-        console.warn("[API_CHAT_SUMMARIZE] Ollama qwen3.5:4b request failed:", ollamaError.message);
-        
-        // Attempt fallback with generic qwen
-        try {
-          const fallbackResponse = await axios.post(
-            ollamaUrl,
-            {
-              model: "qwen",
-              prompt: systemPrompt,
-              stream: false,
-            },
-            {
-              timeout: 10000,
-            }
-          );
-          return NextResponse.json({
-            success: true,
-            summary: fallbackResponse.data.response,
-          });
-        } catch (fallbackError: any) {
-          console.error("[API_CHAT_SUMMARIZE] Both Groq and Ollama failed:", fallbackError.message);
-          return NextResponse.json(
-            {
-              error: "Unable to generate summary at this time.",
-            },
-            { status: 503 }
-          );
-        }
-      }
+    } catch (ollamaError: any) {
+      console.error("[API_CHAT_SUMMARIZE] Ollama minimax-m3 request failed:", ollamaError.message);
+      return NextResponse.json(
+        { error: "Unable to generate summary at this time using Ollama." },
+        { status: 503 }
+      );
     }
   } catch (error) {
     console.error("[API_CHAT_SUMMARIZE] Main error:", error);

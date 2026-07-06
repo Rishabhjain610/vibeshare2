@@ -453,9 +453,8 @@ export default function ChatPage() {
               onChange={(e) => setSelectedModel(e.target.value)}
               className="bg-transparent text-xs font-bold text-neutral-500 dark:text-neutral-400 border border-black/5 dark:border-white/10 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 hover:bg-neutral-50 dark:hover:bg-zinc-900 cursor-pointer outline-none"
             >
-              <option value="minimax-m3:cloud" className="bg-white dark:bg-zinc-950">minimax-m3</option>
-              <option value="qwen3.5:4b" className="bg-white dark:bg-zinc-950">qwen3.5</option>
-              <option value="gemma4:31b-cloud" className="bg-white dark:bg-zinc-950">gemma4</option>
+              <option value="minimax-m3:cloud" className="bg-white dark:bg-zinc-950">Minimax (Local Ollama)</option>
+              <option value="qwen-cloud" className="bg-white dark:bg-zinc-950">Qwen (Groq Cloud)</option>
             </select>
 
             {isLoading ? (

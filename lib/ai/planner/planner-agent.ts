@@ -1,20 +1,34 @@
 import { generateText } from "ai";
 import { createOllama } from "ai-sdk-ollama";
-import { createGroq } from "@ai-sdk/groq";
 import { plannerSchema, PlannerResponse } from "./schemas";
+import { groqModel } from "@/lib/ai/models";
 
 const ollama = createOllama({ baseURL: process.env.OLLAMA_URL || "http://127.0.0.1:11434" });
-const groq = createGroq();
 
 export async function runPlannerAgent(
   userQuery: string,
-  modelName = "minimax-m3:cloud"
+  modelName = "minimax-m3:cloud",
+  history: any[] = []
 ): Promise<PlannerResponse> {
   try {
-    const isCloudModel = modelName.endsWith(":cloud") || modelName.includes("cloud") || modelName.startsWith("groq");
+    const isCloudModel = modelName === "qwen-cloud" || modelName.startsWith("groq");
     const activeModel = isCloudModel
-      ? groq("qwen/qwen3.6-27b")
+      ? groqModel
       : ollama(modelName);
+
+    let promptWithContext = userQuery;
+    if (history.length > 1) {
+      const recent = history.slice(-3).map(m => {
+        let content = "";
+        if (typeof m.content === "string") {
+          content = m.content;
+        } else if (Array.isArray(m.content)) {
+          content = m.content.map((p: any) => p.text || "").join("");
+        }
+        return `${m.role.toUpperCase()}: ${content}`;
+      }).join("\n");
+      promptWithContext = `Conversation history context for reference:\n${recent}\n\nLatest User Message: "${userQuery}"`;
+    }
 
     const response = await generateText({
       model: activeModel,
@@ -40,7 +54,7 @@ Response format MUST be raw JSON:
   "agent": "analytics" | "content" | "both",
   "reasoning": "Explanation"
 }`,
-      prompt: userQuery,
+      prompt: promptWithContext,
     } as any);
 
     const cleanJson = response.text.trim().replace(/^```json|```$/g, "");

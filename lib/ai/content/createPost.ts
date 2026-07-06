@@ -8,8 +8,8 @@ export const createPostTool = tool({
   inputSchema: z.object({
     authorId: z.string().describe("The database user ID from your system context. This is REQUIRED. Use the value provided in the system prompt."),
     caption: z.string().describe("The content copy or caption of the post."),
-    mediaUrl: z.string().optional().describe("Optional URL to an image or video asset."),
-    location: z.string().optional().describe("Optional check-in location name."),
+    mediaUrl: z.string().nullable().optional().describe("Optional URL to an image or video asset."),
+    location: z.string().nullable().optional().describe("Optional check-in location name."),
   }),
   execute: async ({ authorId, caption, mediaUrl, location }: { authorId: string; caption: string; mediaUrl?: string; location?: string }) => {
     try {

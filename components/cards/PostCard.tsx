@@ -5,6 +5,7 @@ import { Heart, MessageCircle, Share2, MapPin, Play, Pause } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { useAuth } from "@clerk/nextjs";
 import axios from "axios";
+import Link from "next/link";
 import CommentSection from "@/components/shared/CommentSection";
 
 interface PostCardProps {
@@ -134,9 +135,9 @@ export default function PostCard({ post }: PostCardProps) {
       
       {/* Header Info */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
+        <Link href={`/profile/${post.User.username}`} className="flex items-center gap-3 group">
           {/* User Avatar */}
-          <div className="h-10 w-10 rounded-full border border-black/5 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="h-10 w-10 rounded-full border border-black/5 dark:border-white/10 bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center overflow-hidden shrink-0 transition-transform duration-200 group-hover:scale-105">
             {post.User.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -152,7 +153,7 @@ export default function PostCard({ post }: PostCardProps) {
           </div>
 
           <div className="flex flex-col min-w-0">
-            <span className="text-sm font-bold text-neutral-900 dark:text-neutral-50 truncate hover:underline cursor-pointer">
+            <span className="text-sm font-bold text-neutral-900 dark:text-neutral-50 truncate group-hover:underline cursor-pointer">
               {post.User.name || post.User.username}
             </span>
             <span className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 flex items-center gap-1.5 mt-0.5">
@@ -161,7 +162,7 @@ export default function PostCard({ post }: PostCardProps) {
               <span suppressHydrationWarning>{formatPostTime(post.createdAt)}</span>
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Location badge if present */}
         {post.location && (

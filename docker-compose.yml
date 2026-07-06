@@ -1,0 +1,55 @@
+# =========================================================================
+# DOCKER-COMPOSE.YML: The Event Manager (Sabhi Containers Ko Ek Sath Chalane Wala)
+# Analogy: Jaise music orchestra me coordinator har artist ko manage karta hai,
+# waise hi ye Next.js aur Redis containers ko sath chalane aur connect karne ke liye hai.
+# Use: Ek single command 'docker compose up' se saari services aapas me link karke start karna.
+# =========================================================================
+
+# Multi-container services define karne ke liye section
+services:
+  # Next.js Web application container service
+  web:
+    # Build settings details
+    build:
+      # Current directory (.) se build context start hoga
+      context: .
+      # custom Dockerfile ka path batayenge compile karne ke liye
+      dockerfile: Dockerfile
+    # Ports mapping config: host port 3001 ko container port 3000 se link karenge
+    ports:
+      - "3001:3000"
+    # Sabhi environment variables .env file se automatically load ho jayenge
+    env_file:
+      - .env
+    # Kuch environment variables ko container environment ke hisab se override karenge
+    environment:
+      # Redis connection URL points to the local redis container inside docker
+      - REDIS_URL=redis://redis:6379
+      # Host machine par chal rahe local Ollama server ka gateway URL
+      - OLLAMA_URL=http://host.docker.internal:11434
+      # Override the API URL for the container since it runs on port 3001
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      # App environment to production
+      - NODE_ENV=production
+    # Web service tabhi start hogi jab redis container chal chuka hoga
+    depends_on:
+      - redis
+    # Linux compatibility ke liye host.docker.internal routing enable karenge
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Redis caching container service
+  redis:
+    # Lightweight Redis alpine docker image use karenge
+    image: redis:alpine
+    # Redis port 6380 map karenge taaki host port conflict na ho
+    ports:
+      - "6380:6379"
+    # Redis data persist karne ke liye volume mounting details
+    volumes:
+      - redis_data:/data
+
+# Persistent storage disk spaces define karne ka section
+volumes:
+  # redis container ke data storage ke liye custom volume disk space block
+  redis_data:
