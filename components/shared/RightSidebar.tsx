@@ -17,41 +17,14 @@ interface SuggestedUser {
   isFollowing: boolean;
 }
 
-const dummyChats = [
-  {
-    id: 1,
-    name: "Liam Carter",
-    lastMessage: "Hey, are we still on for later?",
-    time: "2m ago",
-    unread: 1,
-    active: true,
-    avatar: "L",
-  },
-  {
-    id: 2,
-    name: "Sophia Martinez",
-    lastMessage: "That photo looks amazing!",
-    time: "1h ago",
-    unread: 0,
-    active: false,
-    avatar: "S",
-  },
-  {
-    id: 3,
-    name: "Marcus Vance",
-    lastMessage: "Thanks for sharing!",
-    time: "Yesterday",
-    unread: 0,
-    active: true,
-    avatar: "M",
-  },
-];
 
 const RightSidebar = () => {
   const { userId } = useAuth();
   const [suggestions, setSuggestions] = useState<SuggestedUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [isChatsLoading, setIsChatsLoading] = useState(true);
 
   // Fetch suggestions on component mount
   useEffect(() => {
@@ -72,6 +45,31 @@ const RightSidebar = () => {
     };
 
     fetchSuggestions();
+  }, [userId]);
+
+  // Fetch conversations with polling
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const response = await axios.get("/api/chatwithsummary/conversations");
+        if (response.data && response.data.success) {
+          setConversations(response.data.conversations);
+        }
+      } catch (error) {
+        console.error("[RightSidebar] Error fetching conversations:", error);
+      } finally {
+        setIsChatsLoading(false);
+      }
+    };
+
+    if (userId) {
+      fetchConversations();
+      const interval = setInterval(fetchConversations, 10000);
+      return () => clearInterval(interval);
+    } else {
+      setConversations([]);
+      setIsChatsLoading(false);
+    }
   }, [userId]);
 
   // Handle follow/unfollow toggle
@@ -163,7 +161,7 @@ const RightSidebar = () => {
                 </Link>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Link href={`/chat?userId=${follower.id}`}>
+                  <Link href={`/chatwithsummary?userId=${follower.id}`}>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -218,47 +216,69 @@ const RightSidebar = () => {
           <span className="text-xs font-semibold uppercase tracking-wider">Direct Messages</span>
         </div>
 
-        <div className="space-y-1">
-          {dummyChats.map((chat) => (
-            <div
-              key={chat.id}
-              className="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-900/50 cursor-pointer transition-all duration-200 group"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="relative h-9 w-9 shrink-0 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-black/5 dark:border-white/10 flex items-center justify-center font-bold text-xs text-neutral-700 dark:text-neutral-300">
-                  {chat.avatar}
-                  {chat.active && (
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-black" />
-                  )}
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100 truncate">
-                    {chat.name}
-                  </span>
-                  <span className={cn(
-                    "text-[10px] truncate",
-                    chat.unread > 0
-                      ? "font-bold text-neutral-900 dark:text-neutral-100"
-                      : "text-neutral-400 dark:text-neutral-500"
-                  )}>
-                    {chat.lastMessage}
-                  </span>
-                </div>
-              </div>
+        {isChatsLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-4 w-4 text-indigo-500 animate-spin" />
+          </div>
+        ) : conversations.length > 0 ? (
+          <div className="space-y-1">
+            {conversations.map((chat) => (
+              <Link key={chat.id} href={`/chatwithsummary?userId=${chat.id}`} className="block">
+                <div
+                  className="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-900/50 cursor-pointer transition-all duration-200 group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative h-9 w-9 shrink-0 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-black/5 dark:border-white/10 flex items-center justify-center font-bold text-xs text-neutral-700 dark:text-neutral-300 overflow-hidden">
+                      {chat.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={chat.avatarUrl}
+                          alt={`${chat.name}'s avatar`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span>
+                          {chat.username.substring(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                      {chat.active && (
+                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-black" />
+                      )}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100 truncate">
+                        {chat.name}
+                      </span>
+                      <span className={cn(
+                        "text-[10px] truncate",
+                        chat.unread > 0
+                          ? "font-bold text-neutral-900 dark:text-neutral-100"
+                          : "text-neutral-400 dark:text-neutral-500"
+                      )}>
+                        {chat.lastMessage}
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <span className="text-[9px] font-semibold text-neutral-400 dark:text-neutral-500">
-                  {chat.time}
-                </span>
-                {chat.unread > 0 && (
-                  <span className="h-4 min-w-4 rounded-full bg-neutral-950 dark:bg-neutral-50 text-[9px] font-black text-white dark:text-black flex items-center justify-center px-1">
-                    {chat.unread}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[9px] font-semibold text-neutral-400 dark:text-neutral-500">
+                      {chat.time}
+                    </span>
+                    {chat.unread > 0 && (
+                      <span className="h-4 min-w-4 rounded-full bg-neutral-950 dark:bg-neutral-50 text-[9px] font-black text-white dark:text-black flex items-center justify-center px-1">
+                        {chat.unread}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-neutral-400 dark:text-neutral-500 text-center py-2">
+            No recent conversations
+          </p>
+        )}
       </div>
     </aside>
   );

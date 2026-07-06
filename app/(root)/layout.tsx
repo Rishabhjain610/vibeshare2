@@ -6,6 +6,8 @@ import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import LeftSidebar from "@/components/shared/LeftSidebar";
 import RightSidebar from "@/components/shared/RightSidebar";
+import LayoutContainer from "@/components/shared/LayoutContainer";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -36,8 +38,8 @@ export default function RootLayout({
           <Navbar />
           <main className="flex">
             <LeftSidebar />
-            <section className="flex-1 flex justify-center min-h-[calc(100vh-4rem)] w-full py-8 px-4 md:px-8">
-              <div className="w-full max-w-3xl flex flex-col gap-6">{children}</div>
+            <section className="flex-1 flex justify-center min-h-[calc(100vh-4rem)] min-w-0 py-8 px-4 md:px-8">
+              <LayoutContainer>{children}</LayoutContainer>
             </section>
             <RightSidebar />
           </main>

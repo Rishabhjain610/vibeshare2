@@ -3,14 +3,14 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Rss, Search, User, Clapperboard, Film, MessageSquare } from "lucide-react";
+import { Rss, Search, User, Clapperboard, Film, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const footerLinks = [
   { label: "Feed", href: "/", icon: Rss },
   { label: "Reels", href: "/reels", icon: Clapperboard },
   { label: "Explore", href: "/explore", icon: Search },
-  { label: "Messages", href: "/chat", icon: MessageSquare },
+  { label: "AI Copilot", href: "/chat", icon: Sparkles },
   { label: "Create Reel", href: "/create-reel", icon: Film },
   { label: "Profile", href: "/profile", icon: User },
 ];

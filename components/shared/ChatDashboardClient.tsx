@@ -79,7 +79,7 @@ export default function ChatDashboardClient({
     const fetchMessages = async () => {
       setIsMessagesLoading(true);
       try {
-        const response = await axios.get(`/api/chat/messages`, {
+        const response = await axios.get(`/api/chatwithsummary/messages`, {
           params: { recipientId: activeRecipient.id },
         });
         setMessages(response.data.messages || []);
@@ -145,7 +145,7 @@ export default function ChatDashboardClient({
     setMessages((prev) => [...prev, optimisticMessage]);
 
     try {
-      const response = await axios.post("/api/chat/messages", {
+      const response = await axios.post("/api/chatwithsummary/messages", {
         recipientId: activeRecipient.id,
         content: textToSubmit,
       });
@@ -181,7 +181,7 @@ export default function ChatDashboardClient({
     setShowSummaryModal(true);
 
     try {
-      const response = await axios.post("/api/chat/summarize", {
+      const response = await axios.post("/api/chatwithsummary/summarize", {
         recipientId: activeRecipient.id,
       });
       setSummary(response.data.summary);
@@ -189,7 +189,7 @@ export default function ChatDashboardClient({
       console.error("[ChatDashboardClient] Summarizer error:", err);
       const errMsg =
         err.response?.data?.error ||
-        "Ollama is not running locally. Please verify that the Ollama app is active on your machine and try again.";
+        "Local LLM is not running. Please verify that the Ollama app is active, the qwen3.5:4b model is downloaded ('ollama run qwen3.5:4b'), and try again.";
       setOllamaError(errMsg);
     } finally {
       setIsSummarizing(false);
@@ -426,9 +426,9 @@ export default function ChatDashboardClient({
                 </div>
                 <div>
                   <h3 className="font-black text-sm md:text-base text-neutral-900 dark:text-neutral-50 flex items-center gap-1.5">
-                    Ollama Summary
+                    AI Summary
                     <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-indigo-200/50 dark:border-indigo-900/40">
-                      Local AI
+                      qwen3.5:4b
                     </span>
                   </h3>
                   <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500">
@@ -454,7 +454,7 @@ export default function ChatDashboardClient({
                       Analyzing Transcript...
                     </span>
                     <p className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-1">
-                      Local LLM llama3 is processing chat history
+                      Local LLM qwen3.5:4b is processing chat history
                     </p>
                   </div>
                 </div>
@@ -462,19 +462,14 @@ export default function ChatDashboardClient({
                 <div className="flex items-start gap-3 bg-rose-50 dark:bg-rose-950/20 p-4 rounded-3xl border border-rose-100 dark:border-rose-900/30 text-rose-600 dark:text-rose-400">
                   <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                   <div>
-                    <h5 className="font-bold text-xs uppercase tracking-wider mb-1">Ollama Offline</h5>
+                    <h5 className="font-bold text-xs uppercase tracking-wider mb-1">AI Offline</h5>
                     <p className="text-xs leading-relaxed font-semibold">{ollamaError}</p>
                   </div>
                 </div>
               ) : (
                 <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed font-semibold text-neutral-700 dark:text-neutral-300">
                   {summary ? (
-                    // Convert line breaks to paragraphs and bullet points nicely
-                    summary.split("\n").map((line, i) => (
-                      <p key={i} className="mb-2 last:mb-0">
-                        {line}
-                      </p>
-                    ))
+                    renderMarkdown(summary)
                   ) : (
                     <p className="italic text-neutral-400 dark:text-neutral-500">
                       Failed to fetch summary. Send some messages first to generate a transcript!
@@ -501,3 +496,78 @@ export default function ChatDashboardClient({
     </div>
   );
 }
+
+// Custom lightweight Markdown-to-React elements parser
+function renderMarkdown(text: string) {
+  if (!text) return null;
+
+  const lines = text.split("\n");
+  const renderedElements: React.ReactNode[] = [];
+
+  let listItems: React.ReactNode[] = [];
+
+  const flushList = (key: string | number) => {
+    if (listItems.length > 0) {
+      renderedElements.push(
+        <ul key={`list-${key}`} className="list-disc pl-5 mb-3 space-y-1">
+          {listItems}
+        </ul>
+      );
+      listItems = [];
+    }
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+
+    // Headers (##, ###)
+    if (trimmed.startsWith("## ")) {
+      flushList(index);
+      renderedElements.push(
+        <h4 key={index} className="text-sm font-black text-neutral-900 dark:text-neutral-50 mt-4 mb-2">
+          {parseBoldText(trimmed.replace("## ", ""))}
+        </h4>
+      );
+    } else if (trimmed.startsWith("### ")) {
+      flushList(index);
+      renderedElements.push(
+        <h5 key={index} className="text-xs font-bold text-neutral-900 dark:text-neutral-50 mt-3 mb-1.5">
+          {parseBoldText(trimmed.replace("### ", ""))}
+        </h5>
+      );
+    }
+    // Bullet points (- or *)
+    else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      const content = trimmed.substring(2);
+      listItems.push(
+        <li key={`${index}-li`} className="text-xs text-neutral-700 dark:text-neutral-300">
+          {parseBoldText(content)}
+        </li>
+      );
+    } else {
+      flushList(index);
+      if (trimmed.length > 0) {
+        renderedElements.push(
+          <p key={index} className="text-xs text-neutral-700 dark:text-neutral-300 mb-2 leading-relaxed">
+            {parseBoldText(trimmed)}
+          </p>
+        );
+      }
+    }
+  });
+
+  flushList("end");
+  return renderedElements;
+}
+
+// Helper to parse **bold** text in a line
+function parseBoldText(text: string): React.ReactNode {
+  const parts = text.split(/\*\*([^*]+)\*\*/g);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      return <strong key={i} className="font-bold text-neutral-950 dark:text-neutral-50">{part}</strong>;
+    }
+    return part;
+  });
+}
+
