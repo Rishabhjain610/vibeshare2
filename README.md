@@ -37,7 +37,7 @@
 ### 🤖 Hub-and-Spoke AI Multi-Agent Copilot
 * **Zod-Validated Planner Agent:** Intercepts message contexts and classifies queries via a structured JSON schema validated using a strict Zod blueprint to route intentions across downstream nodes (`"analytics"`, `"content"`, or `"both"`).
 * **Database Analytics Expert:** Operates via an isolated sub-agent wrapped in a defensive `bindToolUserId` middleware decorator. It forces the injection of the active user session ID into tool fields to block context-hijacking. Tools include tracking follower sizes, compiling post trends, and running math-heavy aggregations to compute profile engagement rates.
-* **Content Strategist Sub-Agent:** Drives copy creation with embedded system prompt policy controls. Enforces a strict VibeShare platform exclusivity rule, mandates a search-first image pipeline (Unsplash API checking before falling back to Pollinations AI text-to-image synthesis), and implements a Human-in-the-Loop policy requiring direct user consent before making any write commits.
+* **Content Strategist Sub-Agent:** Drives copy creation with embedded system prompt policy controls. Enforces a strict VibeShare platform exclusivity rule, mandates a **search-first image pipeline (Unsplash API checking)**, and falls back to **Pollinations AI text-to-image synthesis** if no stock matches are found. Implements a Human-in-the-Loop policy requiring direct user consent before making any write commits.
 * **Context Sliding & Optimization:** Employs an automated structural mapper that filters out chat histories, compressing operations down to a sliding window of the last 6 messages to stay safely within Groq cloud rate-limiting boundaries.
 
 ### 📝 Smart Conversational Summarizer
@@ -80,12 +80,16 @@
 ### **Database, Caching & AI Orchestration**
 * ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white) **PostgreSQL (Neon DB)** - Relational storage cloud cluster with optimized B-Tree constraints.
 * ![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white) **Prisma ORM** - Type-safe database schema mapping and query construction.
-* ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logicColor=white) **Redis** - High-throughput key-value memory cache engine for hot read paths.
-* 🤖 **AI Stack:** Vercel AI SDK, Qwen 2.5 (Groq Cloud), Ollama (Local), Tavily API, Unsplash API.
+* ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white) **Redis** - High-throughput key-value memory cache engine for hot read paths.
+* 🤖 **AI Framework:** Vercel AI SDK, Qwen 2.5 (Groq Cloud), Ollama (Local Engine)
+
+### **APIs & Third-Party Services**
+* 🔍 **Image Search API:** Unsplash API (Contextual stock image discovery)
+* 🎨 **Image Generation API:** Pollinations AI (Fallback programmatic text-to-image synthesis)
+* 🌐 **Data & Storage APIs:** Tavily API (Real-time news search engine), AWS S3 SDK (Media asset distribution)
 
 ### **DevOps & Infrastructure**
-* ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white) **Docker Compose** - Multi-service infrastructure virtualization containerization.
-* ![AWS S3](https://img.shields.io/badge/AWS_S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white) **AWS S3 Client** - Cloud asset object storage service bucket integration.
+* ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white) **Docker Compose** - Multi-service infrastructure virtualization and containerization.
 
 ---
 
