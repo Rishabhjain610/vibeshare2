@@ -17,7 +17,7 @@ export interface RateLimitResult {
 export async function rateLimit(
   ip: string,
   route: string,
-  limit: number = 300000,
+  limit: number = 3000000,
   windowSeconds: number = 6
 ): Promise<RateLimitResult> {
   // Use a safe key prefix
