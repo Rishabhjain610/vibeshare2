@@ -189,7 +189,7 @@ export default function ChatDashboardClient({
       console.error("[ChatDashboardClient] Summarizer error:", err);
       const errMsg =
         err.response?.data?.error ||
-        "Local LLM is not running. Please verify that the Ollama app is active, the qwen3.5:4b model is downloaded ('ollama run qwen3.5:4b'), and try again.";
+        "Cloud LLM request failed. Please check your API key configuration and network connectivity.";
       setOllamaError(errMsg);
     } finally {
       setIsSummarizing(false);
@@ -428,7 +428,7 @@ export default function ChatDashboardClient({
                   <h3 className="font-black text-sm md:text-base text-neutral-900 dark:text-neutral-50 flex items-center gap-1.5">
                     AI Summary
                     <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-indigo-200/50 dark:border-indigo-900/40">
-                      qwen3.5:4b
+                      Cloud AI
                     </span>
                   </h3>
                   <p className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500">
@@ -454,7 +454,7 @@ export default function ChatDashboardClient({
                       Analyzing Transcript...
                     </span>
                     <p className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-1">
-                      Local LLM qwen3.5:4b is processing chat history
+                      Cloud LLM is processing chat history
                     </p>
                   </div>
                 </div>

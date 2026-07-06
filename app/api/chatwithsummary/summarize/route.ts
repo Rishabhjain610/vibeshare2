@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import axios from "axios";
+import { generateText } from "ai";
+import { groqModel } from "@/lib/ai/models";
 
 
 export async function POST(request: Request) {
@@ -74,9 +75,7 @@ export async function POST(request: Request) {
       .map((m) => `${usernameMap[m.senderId] || "User"}: ${m.content}`)
       .join("\n");
 
-    // 5. Query local Ollama service
-    // We send a request to Ollama's local generation API.
-    // We try to request 'llama3' or fallback models if there's any mismatch.
+    // 5. Query cloud model service
     const systemPrompt = `You are a helpful chat assistant. Below is a direct chat transcript between two users. 
 Provide a clear, brief bulleted summary of this conversation. Highlight key topics discussed, agreements made, or action items.
 Keep it concise and structured using Markdown.
@@ -86,29 +85,24 @@ ${transcript}
 
 Summary:`;
 
-    const ollamaUrl = "http://127.0.0.1:11434/api/generate";
     try {
-      console.log("[API_CHAT_SUMMARIZE] Requesting summary using local Ollama model 'minimax-m3:cloud'...");
-      const ollamaResponse = await axios.post(
-        ollamaUrl,
-        {
-          model: "minimax-m3:cloud",
-          prompt: systemPrompt,
-          stream: false,
-        },
-        {
-          timeout: 20000, // 20 second timeout for Ollama summary
-        }
-      );
+      console.log("[API_CHAT_SUMMARIZE] Requesting summary using cloud Groq/Qwen model...");
+      const response = await generateText({
+        model: groqModel,
+        prompt: systemPrompt,
+      });
+
+      // Strip <think>...</think> tags if present in the model's output
+      const cleanSummary = response.text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
       return NextResponse.json({
         success: true,
-        summary: ollamaResponse.data.response,
+        summary: cleanSummary,
       });
-    } catch (ollamaError: any) {
-      console.error("[API_CHAT_SUMMARIZE] Ollama minimax-m3 request failed:", ollamaError.message);
+    } catch (groqError: any) {
+      console.error("[API_CHAT_SUMMARIZE] Cloud summary request failed:", groqError.message);
       return NextResponse.json(
-        { error: "Unable to generate summary at this time using Ollama." },
+        { error: "Unable to generate summary at this time using Cloud AI." },
         { status: 503 }
       );
     }
